@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Mirrored Scroll Split</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      overflow-x: hidden;
+      font-family: sans-serif;
+    }
+    body::-webkit-scrollbar {
+      width: 8px;
+    }
+    body::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    body::-webkit-scrollbar-thumb {
+      background-color: #ccc;
+      border-radius: 4px;
+    }
+    .container {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+      z-index: 200; /* Ensure panels are above the menu */
+    }
+    .scroll-container, .right-panel {
+      width: 50vw;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+    .scroll-content, .right-track {
+      height: calc(100vh * 6);
+      min-height: 100vh;
+      margin: 0;
+      padding: 0;
+    }
+    .scroll-content {
+      display: flex;
+      flex-direction: column;
+      will-change: transform;
+    }
+    .slide {
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 3rem;
+      color: white;
+      transition: box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+      background-clip: padding-box;
+    }
+    .slide.active {
+      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25);
+      z-index: 2;
+    }
+    .tilt-effect {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.05);
+      border-radius: 20px;
+      transition: none;
+      will-change: transform;
+      position: relative;
+      padding: 0 !important;
+      overflow: hidden;
+    }
+    .tilt-card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      padding: 0 !important;
+    }
+    .tilt-card-front, .tilt-card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: white;
+      border-radius: 20px;
+      padding: 0 !important;
+      transform-origin: 50% 250%;
+    }
+    .tilt-card-front img, .tilt-card-back img {
+      width: auto;
+      height: 100%;
+      max-height: 100%;
+      display: block;
+      margin: 0 auto;
+      object-fit: contain;
+      background: none;
+      padding: 0;
+      box-shadow: none;
+    }
+    .tilt-card-back {
+      color: #ff0;
+    }
+    .flip-card {
+      perspective: 1200px;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .flip-card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      transform-style: preserve-3d;
+    }
+    .slide.hoverable .flip-card-inner {
+      cursor: pointer;
+    }
+    .slide.hoverable:hover .flip-card-inner {
+      transform: rotateY(180deg);
+    }
+    .flip-card-front, .flip-card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .flip-card-back {
+      transform: rotateY(180deg);
+    }
+    .slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    h1 {
+      background: rgba(0, 0, 0, 0.4);
+      padding: 20px;
+      border-radius: 10px;
+    }
+    .card-content-box {
+      background: rgba(40, 25, 10, 0.6);
+      padding: 40px 80px;
+      border-radius: 15px;
+      font-family: "Times New Roman", Times, serif;
+      font-size: 5vw;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    .static-overlay-text {
+      font-family: "Times New Roman", Times, serif;
+      font-size: 15vw;
+      font-weight: 300;
+      color: rgba(255, 255, 255, 0.2);
+      position: absolute;
+      z-index: 1;
+    }
+    .right-track {
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      will-change: transform;
+    }
+    .right-track .slide {
+      height: 100vh;
+      width: 100%;
+      flex-shrink: 0;
+      transition: box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      box-shadow: 0 0 0 rgba(0,0,0,0);
+    }
+    .right-track .slide.active {
+      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.25);
+      z-index: 2;
+    }
+    .content-box {
+      background: #5D3A1B;
+      padding: 20px 60px;
+      border-radius: 15px;
+      font-family: sans-serif;
+      font-size: 8vw;
+      font-weight: bold;
+      color: white;
+    }
+    .hero-text {
+      background: transparent !important;
+      padding: 0 !important;
+      font-family: sans-serif;
+      font-size: 15vw;
+      font-weight: bold;
+      color: #888888;
+    }
+    .hero-text sub {
+      font-size: 0.4em;
+      vertical-align: sub;
+    }
+    .background-watermark {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .background-watermark span {
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 15vw;
+      font-weight: 400;
+      color: rgba(255,255,255,0.08);
+      line-height: 1;
+      user-select: none;
+    }
+    .slide.position-relative {
+      position: relative;
+      overflow: hidden;
+    }
+    .watermark-slide {
+      background: #6b7a2c;
+      position: relative;
+      overflow: hidden;
+    }
+    .watermark-text {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 10vw;
+      font-weight: 400;
+      color: rgba(255,255,255,0.08);
+      user-select: none;
+      pointer-events: none;
+      line-height: 1;
+      text-align: center;
+    }
+    .watermark-text.left {
+      left: 2vw;
+      top: 30%;
+    }
+    .watermark-text.right {
+      right: 5vw;
+      top: 40%;
+      font-size: 13vw;
+    }
+    .tilt-card-front h1, .tilt-card-back h1 {
+      background: none !important;
+      padding: 0 !important;
+      border-radius: 0 !important;
+    }
+    #slide1-overlay-text {
+      position: absolute;
+      top: 72%;
+      left: 50%;
+      width: 80%;
+      transform: translate(-50%, -50%);
+      font-family: sans-serif;
+      font-size: 2.2vw;
+      font-weight: 300;
+      color: white;
+      line-height: 1.4;
+      text-align: left;
+      z-index: 1;
+    }
+    #orange-no2-text {
+      position: absolute;
+      top: 55%;
+      left: 17%;
+      transform: translate(-50%, -50%);
+      font-family: 'Times New Roman', Times, serif;
+      font-size: 1.5vw;
+      font-weight: 300;
+      color: white;
+      z-index: 1;
+    }
+    #arrow-icon {
+      position: absolute;
+      bottom: 10%;
+      left: 10%;
+      font-size: 2vw;
+      color: white;
+      z-index: 1;
+    }
+    #menu-icon {
+      position: fixed;
+      top: 50px;
+      right: 50px;
+      z-index: 1000;
+      cursor: pointer;
+    }
+    #menu-icon span {
+      display: block;
+      width: 35px;
+      height: 3px;
+      background: white;
+      margin-bottom: 8px;
+    }
+    #menu-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      z-index: 1500;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      color: #333;
+      padding: 50px;
+      visibility: hidden;
+      opacity: 0;
+      overflow: hidden; /* Hide curtains when they are off-screen */
+    }
+    .curtain {
+      position: absolute;
+      top: 0;
+      width: 50%;
+      height: 100%;
+      background-color: #f4f4f4;
+      z-index: 1600;
+    }
+    #curtain-left {
+      left: 0;
+    }
+    #curtain-right {
+      right: 0;
+    }
+    #menu-overlay .menu-logo {
+      width: 80px;
+      height: 80px;
+      border: 1px solid #333;
+    }
+    #menu-overlay .contact-info {
+      margin-top: 20px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    #menu-overlay .nav-links a {
+      display: block;
+      font-size: 3vw;
+      color: #888;
+      text-decoration: none;
+      margin: 20px 0;
+      transition: color 0.3s;
+    }
+    #menu-overlay .nav-links a:hover {
+      color: #333;
+    }
+    #close-menu-btn {
+      position: absolute;
+      top: 50px;
+      right: 50px;
+      font-size: 30px;
+      cursor: pointer;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+</head>
+<body>
+  <div id="menu-icon">
+    <span></span>
+    <span></span>
+  </div>
+  <div id="menu-overlay">
+    <div class="curtain" id="curtain-left"></div>
+    <div class="curtain" id="curtain-right"></div>
+    <div id="close-menu-btn">×</div>
+    <div class="menu-left">
+      <div class="menu-logo"></div>
+      <div class="contact-info">
+        Gsap Anime<br>
+        Anime Street<br>
+        London<br><br>
+        hello@animedirection.com
+      </div>
+    </div>
+    <div class="menu-right">
+      <nav class="nav-links">
+        <a href="#">Home</a>
+        <a href="#">About</a>
+        <a href="#">Shop</a>
+        <a href="#">Blog</a>
+        <a href="#">Contact</a>
+      </nav>
+    </div>
+  </div>
+  <div class="container">
+    <div class="scroll-container" id="scrollContainer">
+      <div class="scroll-content">
+        <div class="slide" style="background:#e3f0ff; position: relative;">
+          <img src="/images/slide1.png" alt="Slide 1">
+          <div id="orange-no2-text">Orange No2</div>
+          <div id="slide1-overlay-text">
+            <span>A</span> <span>gentle</span> <span>blend</span> <span>of</span><br>
+            <span>fresh</span> <span>orange</span> <span>a</span> <span>whole</span><br>
+            <span>malt</span> <span>crisp</span> <span>lager</span>
+          </div>
+          <div id="arrow-icon">→</div>
+        </div>
+        <div class="slide watermark-slide" style="background:#6b7a2c;">
+          <div class="watermark-text">No2</div>
+          <div class="tilt-effect">
+            <div class="tilt-card-inner">
+              <div class="tilt-card-front"><img src="/images/bottlecropfront.png" alt="Bottle Crop Front" style="height: 80%; object-fit: contain;"></div>
+              <div class="tilt-card-back"><img src="/images/bottlecropback.png" alt="Bottle Crop Back" style="height: 80%; object-fit: contain;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="slide" style="background:#e6ffe6"><img src="/images/slide3.png" alt="Slide 3"></div>
+      </div>
+    </div>
+    <div class="right-panel">
+      <div class="right-track" id="rightTrack">
+        <div class="slide position-relative" style="background:#22304a;">
+          <div class="background-watermark"><div class="watermark-text">No2</div></div>
+          <div class="tilt-effect">
+            <div class="tilt-card-inner">
+              <div class="tilt-card-front"><img src="/images/bottlecropfront.png" alt="Bottle Crop Front" style="height: 80%; object-fit: contain;"></div>
+              <div class="tilt-card-back"><img src="/images/bottlecropback.png" alt="Bottle Crop Back" style="height: 80%; object-fit: contain;"></div>
+            </div>
+          </div>
+        </div>
+        <div class="slide" style="background:#2d2d2d"><img src="/images/E.png" alt="E"></div>
+        <div class="slide position-relative" style="background:#d87013;">
+          <div class="background-watermark"><div class="watermark-text">No2</div></div>
+          <div class="tilt-effect">
+            <div class="tilt-card-inner">
+              <div class="tilt-card-front"><img src="/images/bottlecropfront.png" alt="Bottle Crop Front" style="height: 80%; object-fit: contain;"></div>
+              <div class="tilt-card-back"><img src="/images/bottlecropback.png" alt="Bottle Crop Back" style="height: 80%; object-fit: contain;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    gsap.registerPlugin(ScrollTrigger);
+
+    const slideCount = 3;
+    const slideHeight = window.innerHeight;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.body.style.height = (slideCount * slideHeight) + 'px';
+    });
+
+    window.addEventListener('load', () => {
+      let currentSnap = 0;
+      const scrollContent = document.querySelector('.scroll-content');
+      const rightTrack = document.getElementById('rightTrack');
+      const leftSlides = Array.from(document.querySelectorAll('.scroll-content .slide'));
+      const rightSlides = Array.from(document.querySelectorAll('.right-track .slide'));
+
+      function setActiveSlide(idx) {
+        leftSlides.forEach((el, i) => el.classList.toggle('active', i === idx));
+        rightSlides.forEach((el, i) => el.classList.toggle('active', i === idx));
+      }
+
+      setActiveSlide(0);
+
+      const orangeText = document.querySelector("#orange-no2-text");
+      const words = gsap.utils.toArray("#slide1-overlay-text span");
+      const arrow = document.querySelector("#arrow-icon");
+      const textTimeline = gsap.timeline();
+      
+      textTimeline
+        .from(orangeText, {
+          autoAlpha: 0,
+          y: 20,
+          duration: 0.4
+        })
+        .from(words, {
+          autoAlpha: 0,
+          y: 20,
+          stagger: 0.2,
+          duration: 0.4
+        })
+        .from(arrow, {
+          autoAlpha: 0,
+          x: -20,
+          duration: 0.4
+        });
+
+      const menuIcon = document.querySelector("#menu-icon");
+      const menuOverlay = document.querySelector("#menu-overlay");
+      const closeMenuBtn = document.querySelector("#close-menu-btn");
+      const mainContainer = document.querySelector(".container");
+      const leftCurtain = document.querySelector("#curtain-left");
+      const rightCurtain = document.querySelector("#curtain-right");
+
+      menuIcon.addEventListener('click', () => {
+        gsap.set(menuOverlay, { autoAlpha: 1 });
+        gsap.set(leftCurtain, { xPercent: 0 });
+        gsap.set(rightCurtain, { xPercent: 0 });
+        
+        const tl = gsap.timeline({
+          onComplete: () => {
+            gsap.set(mainContainer, { autoAlpha: 0 });
+          }
+        });
+        tl.to(leftCurtain, { xPercent: -100, duration: 0.8, ease: 'power2.inOut' })
+          .to(rightCurtain, { xPercent: 100, duration: 0.8, ease: 'power2.inOut' }, "<");
+      });
+
+      closeMenuBtn.addEventListener('click', () => {
+        const tl = gsap.timeline({
+          onComplete: () => {
+            // After curtains close, hide the overlay and show the main content
+            gsap.set(menuOverlay, { autoAlpha: 0 });
+            gsap.set(mainContainer, { autoAlpha: 1 });
+          }
+        });
+        tl.to(leftCurtain, { xPercent: 0, duration: 0.8, ease: 'power2.inOut' })
+          .to(rightCurtain, { xPercent: 0, duration: 0.8, ease: 'power2.inOut' }, "<");
+      });
+
+      ScrollTrigger.create({
+        trigger: ".container",
+        start: "top top",
+        end: () => '+=' + (slideHeight * (slideCount - 1)),
+        pin: true,
+        anticipatePin: 1,
+        scrub: 0.6,
+        snap: {
+          snapTo: (value) => Math.round(value * (slideCount - 1)) / (slideCount - 1),
+          duration: {min: 0.4, max: 0.8},
+          ease: "power2.inOut"
+        },
+        onUpdate: self => {
+          const progress = self.progress;
+
+          gsap.to(".scroll-content", {
+            y: -progress * (slideHeight * (slideCount - 1)),
+            duration: 0.6,
+            ease: "power3.out",
+            overwrite: "auto"
+          });
+
+          gsap.to("#rightTrack", {
+            y: -(1 - progress) * (slideHeight * (slideCount - 1)),
+            duration: 0.6,
+            ease: "power3.out",
+            overwrite: "auto"
+          });
+
+          const slideIdx = Math.round(progress * (slideCount - 1));
+          setActiveSlide(slideIdx);
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+          e.preventDefault();
+          let next = Math.min(currentSnap + 1, slideCount - 1);
+          if (next !== currentSnap) {
+            currentSnap = next;
+            gsap.to(window, {
+              scrollTo: {y: currentSnap * slideHeight},
+              duration: 0.7,
+              ease: "power2.inOut"
+            });
+          }
+        } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+          e.preventDefault();
+          let prev = Math.max(currentSnap - 1, 0);
+          if (prev !== currentSnap) {
+            currentSnap = prev;
+            gsap.to(window, {
+              scrollTo: {y: prev * slideHeight},
+              duration: 0.7,
+              ease: "power2.inOut"
+            });
+          }
+        }
+      });
+
+      // Sticky flip effect for alternate slides
+      document.querySelectorAll('.tilt-effect').forEach(el => {
+        const frontCard = el.querySelector('.tilt-card-front');
+        const backCard = el.querySelector('.tilt-card-back');
+        let isBackVisible = false;
+
+        gsap.set(frontCard, { rotation: 0 });
+        gsap.set(backCard, { rotation: 30 });
+
+        el.addEventListener('mousemove', (e) => {
+          const rect = el.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const centerX = rect.width / 2;
+
+          if (!isBackVisible && x > centerX) {
+            gsap.to(frontCard, { rotation: -30, duration: 2.0, ease: 'elastic.out(0.5, 0.4)' });
+            gsap.to(backCard, { rotation: 0, duration: 2.0, ease: 'elastic.out(0.5, 0.4)' });
+            isBackVisible = true;
+          } else if (isBackVisible && x <= centerX) {
+            gsap.to(frontCard, { rotation: 0, duration: 2.0, ease: 'elastic.out(0.5, 0.4)' });
+            gsap.to(backCard, { rotation: 30, duration: 2.0, ease: 'elastic.out(0.5, 0.4)' });
+            isBackVisible = false;
+          }
+        });
+        // No mouseleave handler: stays on last state
+      });
+    });
+  </script>
+</body>
+</html> 
